@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Cyberscape</title>
+  <style>
+    #gameCanvas {
+      display: block;
+      background-color: #111;
+      border: 2px solid black;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    .canvas-btn {
+      background-color: black;
+      color: cyan;
+      font-family: 'Lucida Console', monospace;
+      font-size: 16px;
+      border: 2px solid cyan;
+      padding: 4px 12px;
+      cursor: pointer;
+      position: fixed;
+    }
+
+    #status {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      width: 260px;
+      height: 120x;
+      background-color: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgb(0, 255, 255);
+      padding: 20px;
+      color: rgb(0, 255, 255);
+      font-family: 'Lucida Console', monospace;
+      font-size: 22px;
+      z-index: 1000;
+      border-radius: 2rem;
+      
+
+    }
+
+    
+  </style>
+</head>
+
+<body>
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
+  <div id="status">
+    <div>System Health: <div id="systemHealth"></div></div>
+    <div>Player Health: <div id="systemHealth"></div></div>
+    <div>Shards Delivered: <div id="systemHealth"></div></div>
+    <div>Keys: <div id="systemHealth"></div></div>
+    <div>High Score: <div id="systemHealth"></div></div>
+  </div>
+
+  <button id="pauseBtn" class="canvas-btn" style="left: 540px; top: 740px;">Pause</button>
+  <button id="resumeBtn" class="canvas-btn" style="left: 740px; top: 740px;">Resume</button>
+  <button id="resetBtn" class="canvas-btn" style="left: 940px; top: 740px;">Reset</button>
+
+
+  <script src="script1.js"></script>
+
+</body>
+
+</html>
