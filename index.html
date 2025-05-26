@@ -32,31 +32,46 @@
       top: 20px;
       left: 20px;
       width: 260px;
-      height: 120x;
+      height: 140px;
       background-color: rgba(0, 0, 0, 0.7);
       border: 1px solid rgb(0, 255, 255);
-      padding: 20px;
+      padding: 7px;
       color: rgb(0, 255, 255);
       font-family: 'Lucida Console', monospace;
       font-size: 22px;
       z-index: 1000;
-      border-radius: 2rem;
-      
-
+      border-radius: 1rem;
+      margin-left: 6px;
+      margin-top: 6px;
     }
 
-    
+
+    .control {
+      display: flex;
+      align-items: center;
+      margin-bottom: 6px;
+    }
   </style>
 </head>
 
 <body>
   <canvas id="gameCanvas" width="800" height="600"></canvas>
   <div id="status">
-    <div>System Health: <div id="systemHealth"></div></div>
-    <div>Player Health: <div id="systemHealth"></div></div>
-    <div>Shards Delivered: <div id="systemHealth"></div></div>
-    <div>Keys: <div id="systemHealth"></div></div>
-    <div>High Score: <div id="systemHealth"></div></div>
+    <div class="control"> <span>System Health: </span>
+      <div id="systemHealth">100</div>
+    </div>
+    <div class="control"><span>Player Health: </span>
+      <div id="playerHealth">100</div>
+    </div>
+    <div class="control"><span>Shards Delivered:</span>
+      <div id="shardDelivered">0</div>
+    </div>
+    <div class="control"><span>Keys:</span>
+      <div id="keys">0</div>
+    </div>
+    <div class="control"><span>High Score:</span>
+      <div id="highScore">0</div>
+    </div>
   </div>
 
   <button id="pauseBtn" class="canvas-btn" style="left: 540px; top: 740px;">Pause</button>
