@@ -6,23 +6,29 @@
   <title>Cyberscape</title>
   <style>
     #gameCanvas {
-      display: block;
-      background-color: #111;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 0;
+      background-color: black;
       border: 2px solid black;
     }
 
     body {
       margin: 0;
       padding: 0;
+
+      height: 100%;
     }
 
     .canvas-btn {
       background-color: black;
       color: cyan;
-      font-family: 'Lucida Console', monospace;
-      font-size: 16px;
+      font-family: 'Orbitron, sans-serif';
+      font-size: 22px;
       border: 2px solid cyan;
-      padding: 4px 12px;
+      border-radius: 0.5rem;
+      padding: 2px 8px;
       cursor: pointer;
       position: fixed;
     }
@@ -31,13 +37,13 @@
       position: fixed;
       top: 20px;
       left: 20px;
-      width: 260px;
-      height: 140px;
+      width: 200px;
+      height: 150px;
       background-color: rgba(0, 0, 0, 0.7);
       border: 1px solid rgb(0, 255, 255);
       padding: 7px;
       color: rgb(0, 255, 255);
-      font-family: 'Lucida Console', monospace;
+      font-family: 'Orbitron, sans-serif';
       font-size: 22px;
       z-index: 1000;
       border-radius: 1rem;
@@ -50,6 +56,51 @@
       display: flex;
       align-items: center;
       margin-bottom: 6px;
+    }
+
+
+    #gameOver {
+      display: none;
+      position: fixed;
+      left: 0;
+      right: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.85);
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+
+    .messagebox {
+      background-color: #39FF14;
+      color: black;
+      box-shadow: 0 0 15px #00000099;
+      padding: 40px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    #newGame {
+      margin-top: 20px;
+      padding: 5px 10px;
+      font-size: 30px;
+      background-color: black;
+      color: rgb(0, 255, 255);
+      border-radius: 0.5rem;
+      transition: background-color 0.2s;
+      cursor: pointer;
+      font-family: 'Orbitron, sans-serif';
+      border: 1px solid rgb(0, 255, 255)
+    }
+
+    #gamemessage {
+      font-size: 30px;
+      font-weight: 100;
+      margin-bottom: 30px;
+
+
     }
   </style>
 </head>
@@ -78,7 +129,12 @@
   <button id="resumeBtn" class="canvas-btn" style="left: 740px; top: 740px;">Resume</button>
   <button id="resetBtn" class="canvas-btn" style="left: 940px; top: 740px;">Reset</button>
 
-
+  <div id="gameOver">
+    <div class="messagebox">
+      <h2 id="gamemessage"></h2>
+      <button id="newGame">New Game</button>
+    </div>
+  </div>
   <script src="script.js"></script>
 
 </body>

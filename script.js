@@ -8,13 +8,22 @@ const tileSize = 200;
 const padding = 27;
 const keyradius = 7;
 const threshold = 30;
-let overlap = false;
+
+
+
 let keysCollected = 0;
 let keysRequired = 3;
 let shardUnlocked = false;
 let shardDelivered = false;
 let noofshard = 0;
 let playerHasShard = false;
+let sysheal = 100;
+let systemInterval = null;
+let playheal = 100;
+
+
+let isPaused = false;
+let isGameOver = false;
 
 const tilecoords = [];
 const greencoords = [];
@@ -30,11 +39,11 @@ let player = {
   color: "white",
 };
 
-const bsx = Math.floor(Math.random() * (canvas.width / tileSize));
-const bsy = Math.floor(Math.random() * (canvas.height / tileSize));
+let bsx = Math.floor(Math.random() * (canvas.width / tileSize));
+let bsy = Math.floor(Math.random() * (canvas.height / tileSize));
 
-const chx = Math.floor(Math.random() * (canvas.width / tileSize));
-const chy = Math.floor(Math.random() * (canvas.height / tileSize));
+let chx = Math.floor(Math.random() * (canvas.width / tileSize));
+let chy = Math.floor(Math.random() * (canvas.height / tileSize));
 
 let keysPressed = {};
 
@@ -45,21 +54,22 @@ function drawGrid() {
       tilecoords.push(tile);
 
       if (x === tileSize * bsx && y == tileSize * bsy) {
-        ctx.strokeStyle = "cyan";
-        ctx.fillStyle = "cyan";
+        ctx.fillStyle = "	#00E5FF";
       } else if (x === tileSize * chx && y == tileSize * chy) {
-        ctx.strokeStyle = "Fuchsia";
-        ctx.fillStyle = "Fuchsia";
+        ctx.fillStyle = "#FF00FF";
       } else {
-        ctx.strokeStyle = "hsl(84, 100%, 36.3%)";
-        ctx.fillStyle = "#7FFF00";
+        ctx.fillStyle = "	#39FF14";
       }
-      ctx.lineWidth = 0.1;
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#145214";
+      ctx.shadowColor = "#00ffff";
+      ctx.shadowBlur = 10;
       ctx.strokeRect(x, y, tileSize, tileSize);
       const greenX = x + padding;
       const greenY = y + padding;
       const greenSize = tileSize - padding * 2;
       ctx.fillRect(greenX, greenY, greenSize, greenSize);
+      ctx.shadowBlur = 0;
 
       greencoords.push({ x: greenX, y: greenY, size: greenSize });
     }
@@ -79,7 +89,11 @@ function generateBlackBuildings() {
 
 function drawBlackBuildings() {
   buildings.forEach(({ x, y, size }) => {
-    ctx.fillStyle = "black";
+    const gradient = ctx.createLinearGradient(x, y, x + size, y + size);
+    gradient.addColorStop(0, "#1A1A1A");
+    gradient.addColorStop(1, "#2E2E2E");
+    ctx.fillStyle = gradient;
+
     ctx.fillRect(x, y, size, size);
   });
 }
@@ -96,7 +110,7 @@ function drawShards() {
   );
 
   if (hubTile) {
-    ctx.fillStyle = "#FF00BF";
+    ctx.fillStyle = "	#BF00FF";
     ctx.beginPath();
     ctx.arc(
       hubTile.x + hubTile.size / 2,
@@ -123,7 +137,7 @@ function drawShards() {
 }
 
 function keygenerate() {
-  const nofkey = Math.floor(Math.random() * 50);
+  const nofkey = Math.floor(Math.random() * 40) + 10;
 
   for (let i = 0; i < nofkey; i++) {
     let kx = Math.random() * canvas.width;
@@ -136,10 +150,8 @@ function keydraw() {
   keys.forEach(({ x, y }) => {
     ctx.beginPath();
     ctx.arc(x, y, keyradius, 0, Math.PI * 2);
-    ctx.fillStyle = "Fuchsia";
-    ctx.strokeStyle = "Fuchsia";
+    ctx.fillStyle = "	#FF6EC7";
     ctx.fill();
-    ctx.stroke();
   });
 }
 
@@ -203,8 +215,8 @@ function movePlayer() {
 function drawPlayer() {
   ctx.beginPath();
   ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
-  ctx.strokeStyle="player.color";
-  ctx.fillStyle = "white";
+  ctx.strokeStyle = player.color;
+  ctx.fillStyle = player.color;
   ctx.stroke();
   ctx.fill();
 }
@@ -260,7 +272,7 @@ function fireBullet() {
 
     ctx.beginPath();
     ctx.arc(b.x, b.y, 5, 0, Math.PI * 2);
-    ctx.fillStyle = "yellow";
+    ctx.fillStyle = "	#FF3131";
     ctx.fill();
 
     const index = Isbulletcollidewithbuilding(b);
@@ -323,20 +335,21 @@ function Isbulletcollidewithbuilding(bullet) {
   return -1;
 }
 
-let sysheal = 100;
-let systemInterval = null;
-
 function systemhealth() {
-  if (systemInterval) return;
+  if (systemInterval || isPaused || isGameOver) return;
 
   document.querySelector("#systemHealth").textContent = sysheal;
 
   systemInterval = setInterval(() => {
+    if (isPaused || isGameOver) return;
     if (sysheal > 0) {
       sysheal--;
       document.querySelector("#systemHealth").textContent = sysheal;
-    } else {
+    }
+    if (sysheal <= 0) {
       clearInterval(systemInterval);
+      systemInterval = null;
+      GameOver();
       console.log("Game over");
     }
   }, 1000);
@@ -348,15 +361,11 @@ function checkShardUnlock() {
       gc.x === tileSize * chx + padding && gc.y === tileSize * chy + padding
   );
   const hubDist = getDistance(player.x, player.y, hubTile.x, hubTile.y);
-  if (
-    keysCollected >= keysRequired &&
-    hubDist < threshold &&
-    !shardUnlocked
-  ) {
+  if (keysCollected >= keysRequired && hubDist < threshold && !shardUnlocked) {
     shardUnlocked = true;
     playerHasShard = true;
     keysCollected -= keysRequired;
-    player.color = "frushia";
+    player.color = "	#9400D3";
     document.querySelector("#keys").textContent = keysCollected;
     console.log("shradunlocked");
   }
@@ -387,9 +396,35 @@ function checkShardDelivery() {
 
     drawShards();
   }
+
+  const highScoreElem = document.querySelector("#highScore");
+  const currentHighScore = parseInt(highScoreElem.textContent);
+  if (noofshard > currentHighScore) {
+    highScoreElem.textContent = noofshard;
+  }
+}
+
+function isPlayerInRedZone(cx, cy, startAngle, angleSpan = Math.PI / 3) {
+  const distance = getDistance(player.x, player.y, cx, cy);
+  if (distance > tileSize / 2 + 20) return false;
+  const dx = player.x - cx;
+  const dy = player.y - cy;
+  let angleToPlayer = Math.atan2(dy, dx);
+  if (angleToPlayer < 0) angleToPlayer += 2 * Math.PI;
+
+  const endAngle = startAngle + angleSpan;
+
+  if (endAngle <= 2 * Math.PI) {
+    return angleToPlayer >= startAngle && angleToPlayer <= endAngle;
+  } else {
+    return (
+      angleToPlayer >= startAngle || angleToPlayer <= endAngle - 2 * Math.PI
+    );
+  }
 }
 
 function drawTower() {
+  let redZone = false;
   tilecoords.forEach(({ x, y }, i) => {
     if (
       (x === tileSize * bsx && y === tileSize * bsy) ||
@@ -409,16 +444,93 @@ function drawTower() {
     ctx.lineTo(centerX, centerY);
     ctx.closePath();
 
-    ctx.fillStyle = "rgba(255, 0, 0, 0.33)";
+    ctx.fillStyle = "rgba(255, 80, 80, 0.25)";
     ctx.fill();
     ctx.strokeStyle = "red";
     ctx.lineWidth = 2;
     ctx.stroke();
+
+    if (isPlayerInRedZone(centerX, centerY, start_angle, Math.PI / 3)) {
+      redZone = true;
+    }
   });
+  if (redZone && playheal > 0) {
+    playheal -= 0.01;
+    if (playheal < 0) {
+      playheal = 0;
+      GameOver();
+      console.log("game over");
+    }
+    document.querySelector("#playerHealth").textContent = Math.floor(playheal);
+  }
 }
 
+function resetGame() {
+  tilecoords.length = 0;
+  greencoords.length = 0;
+  buildings.length = 0;
+  keys.length = 0;
+  bullets.length = 0;
+
+  keysCollected = 0;
+  shardUnlocked = false;
+  shardDelivered = false;
+  playerHasShard = false;
+  noofshard = 0;
+  sysheal = 100;
+  playheal = 100;
+  isPaused = false;
+  isGameOver = false;
+
+  player.x = canvas.width / 2;
+  player.y = canvas.height / 2;
+  player.color = "white";
+
+  document.querySelector("#keys").textContent = keysCollected;
+  document.querySelector("#systemHealth").textContent = sysheal;
+  document.querySelector("#playerHealth").textContent = Math.floor(playheal);
+  document.querySelector("#shardDelivered").textContent = noofshard;
+
+  if (systemInterval) {
+    clearInterval(systemInterval);
+    systemInterval = null;
+  }
+
+  bsx = Math.floor(Math.random() * (canvas.width / tileSize));
+  bsy = Math.floor(Math.random() * (canvas.height / tileSize));
+  chx = Math.floor(Math.random() * (canvas.width / tileSize));
+  chy = Math.floor(Math.random() * (canvas.height / tileSize));
+
+  drawGrid();
+  generateBlackBuildings();
+  keygenerate();
+  towerAngles.splice(
+    0,
+    towerAngles.length,
+    ...tilecoords.map(() => Math.random() * 2 * Math.PI)
+  );
+  drawTower();
+  startGame();
+}
+
+document.getElementById("pauseBtn").addEventListener("click", () => {
+  isPaused = true;
+});
+
+document.getElementById("resumeBtn").addEventListener("click", () => {
+  if (!isGameOver) {
+    isPaused = false;
+    requestAnimationFrame(startGame);
+  }
+});
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+  resetGame();
+});
+
 function startGame() {
-  requestAnimationFrame(startGame);
+  if (isPaused || isGameOver) return;
+
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawGrid();
   drawBlackBuildings();
@@ -434,6 +546,19 @@ function startGame() {
 
   for (let i = 0; i < towerAngles.length; i++) towerAngles[i] += 0.01;
   drawTower();
+
+  requestAnimationFrame(startGame);
+}
+
+function GameOver() {
+  alert("Game Over!");
+  isGameOver = true;
+  document.querySelector("#gameOver").style.display = "flex";
+  document.getElementById("gamemessage").textContent = "Game Over! Try Again.";
+  document.getElementById("newGame").addEventListener("click", () => {
+    document.querySelector("#gameOver").style.display = "none";
+    resetGame();
+  });
 }
 
 drawGrid();
