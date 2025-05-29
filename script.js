@@ -1,15 +1,17 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+const sounds = {
+  key: new Audio("sounds/key.mp3"),
+   shoot: new Audio("sounds/shoot.mp3")
+};
 
 canvas.height = 2000;
 canvas.width = 2000;
 
-const tileSize = 200;
+const tileSize = 270;
 const padding = 27;
 const keyradius = 7;
 const threshold = 30;
-
-
 
 let keysCollected = 0;
 let keysRequired = 3;
@@ -21,7 +23,6 @@ let sysheal = 100;
 let systemInterval = null;
 let playheal = 100;
 
-
 let isPaused = false;
 let isGameOver = false;
 
@@ -30,6 +31,7 @@ const greencoords = [];
 const buildings = [];
 const keys = [];
 const bullets = [];
+const floatingTexts = [];
 
 let player = {
   x: canvas.width / 2,
@@ -79,7 +81,7 @@ function drawGrid() {
 function generateBlackBuildings() {
   greencoords.forEach(({ x, y, size }) => {
     for (let i = 0; i < 5; i++) {
-      const squareSize = 65;
+      const squareSize = 85;
       const randX = x + Math.random() * (size - squareSize);
       const randY = y + Math.random() * (size - squareSize);
       buildings.push({ x: randX, y: randY, size: squareSize, hitcount: 0 });
@@ -206,6 +208,14 @@ function movePlayer() {
   if (keysPressed["ArrowLeft"]) nextX -= player.speed;
   if (keysPressed["ArrowRight"]) nextX += player.speed;
 
+  const minX = player.radius;
+  const maxX = canvas.width - player.radius;
+  const minY = player.radius;
+  const maxY = canvas.height - player.radius;
+
+  nextX = Math.max(minX, Math.min(maxX, nextX));
+  nextY = Math.max(minY, Math.min(maxY, nextY));
+
   if (!isCollidingWithBuilding(nextX, nextY, player.radius)) {
     player.x = nextX;
     player.y = nextY;
@@ -221,6 +231,12 @@ function drawPlayer() {
   ctx.fill();
 }
 
+function centerViewOnPlayer() {
+  const offsetX = player.x - window.innerWidth / 2;
+  const offsetY = player.y - window.innerHeight / 2;
+  window.scrollTo(offsetX, offsetY);
+}
+
 function getDistance(x1, y1, x2, y2) {
   const dx = x2 - x1;
   const dy = y2 - y1;
@@ -234,12 +250,42 @@ function collisionofkeyandplayer() {
     if (distance < player.radius + keyradius) {
       keysCollected++;
       document.querySelector("#keys").textContent = keysCollected;
+
+      sounds.key.currentTime = 0;
+      sounds.key.play();
+
+      floatingTexts.push({
+        x: key.x,
+        y: key.y,
+        text: " +🔑 ",
+        alpha: 1,
+        life: 30,
+      });
       keys.splice(i, 1);
+    }
+  }
+}
+function drawFloatingTexts() {
+  for (let i = floatingTexts.length - 1; i >= 0; i--) {
+    const ft = floatingTexts[i];
+    ctx.font = "20px Orbitron, sans-serif";
+    ctx.fillStyle = `rgba(255, 255, 0, ${ft.alpha})`;
+    ctx.fillText(ft.text, ft.x, ft.y);
+
+    ft.y -= 1;
+    ft.alpha -= 0.03;
+    ft.life--;
+
+    if (ft.life <= 0 || ft.alpha <= 0) {
+      floatingTexts.splice(i, 1);
     }
   }
 }
 
 canvas.addEventListener("click", (e) => {
+  sounds.shoot.currentTime = 0;
+  sounds.shoot.play();
+
   const rect = canvas.getBoundingClientRect();
 
   const mouseX = e.clientX - rect.left;
@@ -352,7 +398,7 @@ function systemhealth() {
       GameOver();
       console.log("Game over");
     }
-  }, 1000);
+  }, 3000);
 }
 
 function checkShardUnlock() {
@@ -360,7 +406,9 @@ function checkShardUnlock() {
     (gc) =>
       gc.x === tileSize * chx + padding && gc.y === tileSize * chy + padding
   );
-  const hubDist = getDistance(player.x, player.y, hubTile.x, hubTile.y);
+  const tilecenterX = hubTile.x + tileSize / 2;
+  const tilecenterY = hubTile.y + tileSize / 2;
+  const hubDist = getDistance(player.x, player.y, tilecenterX, tilecenterY);
   if (keysCollected >= keysRequired && hubDist < threshold && !shardUnlocked) {
     shardUnlocked = true;
     playerHasShard = true;
@@ -376,13 +424,9 @@ function checkShardDelivery() {
     (gc) =>
       gc.x === tileSize * bsx + padding && gc.y === tileSize * bsy + padding
   );
-
-  const baseDist = getDistance(
-    player.x,
-    player.y,
-    stationTile.x,
-    stationTile.y
-  );
+  centerX = stationTile.x + tileSize / 2;
+  centerY = stationTile.y + tileSize / 2;
+  const baseDist = getDistance(player.x, player.y, centerX, centerY);
   if (playerHasShard && baseDist < threshold) {
     shardDelivered = true;
     playerHasShard = false;
@@ -393,15 +437,22 @@ function checkShardDelivery() {
     document.querySelector("#systemHealth").textContent = sysheal;
     document.querySelector("#shardDelivered").textContent = noofshard;
     console.log("shraddelivered");
-
-    drawShards();
   }
 
   const highScoreElem = document.querySelector("#highScore");
-  const currentHighScore = parseInt(highScoreElem.textContent);
-  if (noofshard > currentHighScore) {
-    highScoreElem.textContent = noofshard;
+  saveHighScore(noofshard);
+  const highScore = getHighScore();
+}
+
+function saveHighScore(score) {
+  const highScore = localStorage.getItem("highScore");
+  if (!highScore || score > parseInt(highScore)) {
+    localStorage.setItem("highScore", score);
+    console.log("New high score saved:", score);
   }
+}
+function getHighScore() {
+  return localStorage.getItem("highScore") || 0;
 }
 
 function isPlayerInRedZone(cx, cy, startAngle, angleSpan = Math.PI / 3) {
@@ -532,12 +583,14 @@ function startGame() {
   if (isPaused || isGameOver) return;
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  movePlayer();
+  centerViewOnPlayer();
   drawGrid();
   drawBlackBuildings();
   drawShards();
   keydraw();
+  drawFloatingTexts();
   drawPlayer();
-  movePlayer();
   collisionofkeyandplayer();
   fireBullet();
   systemhealth();
