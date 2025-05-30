@@ -2,7 +2,7 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 const sounds = {
   key: new Audio("sounds/key.mp3"),
-   shoot: new Audio("sounds/shoot.mp3")
+  shoot: new Audio("sounds/shoot.mp3"),
 };
 
 canvas.height = 2000;
@@ -19,7 +19,7 @@ let shardUnlocked = false;
 let shardDelivered = false;
 let noofshard = 0;
 let playerHasShard = false;
-let sysheal = 100;
+let sysheal = 50;
 let systemInterval = null;
 let playheal = 100;
 
@@ -32,6 +32,7 @@ const buildings = [];
 const keys = [];
 const bullets = [];
 const floatingTexts = [];
+const towers = [];
 
 let player = {
   x: canvas.width / 2,
@@ -321,6 +322,21 @@ function fireBullet() {
     ctx.fillStyle = "	#FF3131";
     ctx.fill();
 
+    for (let t = 0; t < towers.length; t++) {
+      const tower = towers[t];
+      if (tower.destroyed) continue;
+      const distance = getDistance(b.x, b.y, tower.x, tower.y);
+
+      if (distance < 15) {
+      
+        tower.destroyed = true;
+        bullets.splice(i, 1);
+        i--;
+        console.log("Tower destroyed!");
+        break;
+      }
+    }
+
     const index = Isbulletcollidewithbuilding(b);
 
     if (index !== -1) {
@@ -424,24 +440,28 @@ function checkShardDelivery() {
     (gc) =>
       gc.x === tileSize * bsx + padding && gc.y === tileSize * bsy + padding
   );
-  centerX = stationTile.x + tileSize / 2;
-  centerY = stationTile.y + tileSize / 2;
+  const centerX = stationTile.x + tileSize / 2;
+  const centerY = stationTile.y + tileSize / 2;
   const baseDist = getDistance(player.x, player.y, centerX, centerY);
   if (playerHasShard && baseDist < threshold) {
     shardDelivered = true;
     playerHasShard = false;
     shardUnlocked = false;
     player.color = "white";
-    sysheal += 10;
+    sysheal += 30;
     noofshard++;
     document.querySelector("#systemHealth").textContent = sysheal;
     document.querySelector("#shardDelivered").textContent = noofshard;
     console.log("shraddelivered");
-  }
 
+    if (sysheal >= 100 && !isGameOver) {
+      GameWin();
+    }
+  }
   const highScoreElem = document.querySelector("#highScore");
   saveHighScore(noofshard);
   const highScore = getHighScore();
+  highScoreElem.textContent = highScore;
 }
 
 function saveHighScore(score) {
@@ -455,7 +475,23 @@ function getHighScore() {
   return localStorage.getItem("highScore") || 0;
 }
 
-function isPlayerInRedZone(cx, cy, startAngle, angleSpan = Math.PI / 3) {
+function gettower() {
+  tilecoords.forEach(({ x, y }, i) => {
+    if (
+      (x === tileSize * bsx && y === tileSize * bsy) ||
+      (x === tileSize * chx && y === tileSize * chy)
+    )
+      return;
+
+    towers.push({
+      x: x + tileSize / 2,
+      y: y + tileSize / 2,
+      angle: Math.random() * 2 * Math.PI,
+      destroyed: false,
+    });
+  });
+}
+function isPlayerInRedZone(cx, cy, startAngle) {
   const distance = getDistance(player.x, player.y, cx, cy);
   if (distance > tileSize / 2 + 20) return false;
   const dx = player.x - cx;
@@ -463,58 +499,57 @@ function isPlayerInRedZone(cx, cy, startAngle, angleSpan = Math.PI / 3) {
   let angleToPlayer = Math.atan2(dy, dx);
   if (angleToPlayer < 0) angleToPlayer += 2 * Math.PI;
 
-  const endAngle = startAngle + angleSpan;
+  startAngle = startAngle % (2 * Math.PI);
+  if (startAngle < 0) startAngle += 2 * Math.PI;
 
-  if (endAngle <= 2 * Math.PI) {
-    return angleToPlayer >= startAngle && angleToPlayer <= endAngle;
+  const endAngle = (startAngle + Math.PI / 3) % (2 * Math.PI);
+
+  let inRedZone;
+
+  if (startAngle < endAngle) {
+    inRedZone = angleToPlayer >= startAngle && angleToPlayer <= endAngle;
   } else {
-    return (
-      angleToPlayer >= startAngle || angleToPlayer <= endAngle - 2 * Math.PI
-    );
+    inRedZone = angleToPlayer >= startAngle || angleToPlayer <= endAngle;
   }
+  if (inRedZone) {
+    console.log("player is in red zone");
+  }
+
+  return inRedZone;
 }
 
 function drawTower() {
-  let redZone = false;
-  tilecoords.forEach(({ x, y }, i) => {
-    if (
-      (x === tileSize * bsx && y === tileSize * bsy) ||
-      (x === tileSize * chx && y === tileSize * chy)
-    )
-      return;
-    const centerX = x + tileSize / 2;
-    const centerY = y + tileSize / 2;
+  towers.forEach((tower) => {
+    if (tower.destroyed) return;
+
+    const end_angle = tower.angle + Math.PI / 3;
     const arcRadius = tileSize / 2 + 20;
 
-    const start_angle = towerAngles[i];
-    const end_angle = start_angle + Math.PI / 3;
-
     ctx.beginPath();
-    ctx.moveTo(centerX, centerY);
-    ctx.arc(centerX, centerY, arcRadius, start_angle, end_angle);
-    ctx.lineTo(centerX, centerY);
+    ctx.moveTo(tower.x, tower.y);
+    ctx.arc(tower.x, tower.y, arcRadius, tower.angle, end_angle);
+    ctx.lineTo(tower.x, tower.y);
     ctx.closePath();
-
     ctx.fillStyle = "rgba(255, 80, 80, 0.25)";
     ctx.fill();
     ctx.strokeStyle = "red";
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    if (isPlayerInRedZone(centerX, centerY, start_angle, Math.PI / 3)) {
-      redZone = true;
+    if (isPlayerInRedZone(tower.x, tower.y, tower.angle)) {
+      playheal -= 0.05;
+      if (playheal <= 0 && !isGameOver) {
+        playheal = 0;
+        GameOver();
+        return;
+      }
+
+      document.querySelector("#playerHealth").textContent =
+        Math.floor(playheal);
     }
   });
-  if (redZone && playheal > 0) {
-    playheal -= 0.01;
-    if (playheal < 0) {
-      playheal = 0;
-      GameOver();
-      console.log("game over");
-    }
-    document.querySelector("#playerHealth").textContent = Math.floor(playheal);
-  }
 }
+
 
 function resetGame() {
   tilecoords.length = 0;
@@ -522,13 +557,14 @@ function resetGame() {
   buildings.length = 0;
   keys.length = 0;
   bullets.length = 0;
+  towers.length=0;
 
   keysCollected = 0;
   shardUnlocked = false;
   shardDelivered = false;
   playerHasShard = false;
   noofshard = 0;
-  sysheal = 100;
+  sysheal = 50;
   playheal = 100;
   isPaused = false;
   isGameOver = false;
@@ -555,11 +591,7 @@ function resetGame() {
   drawGrid();
   generateBlackBuildings();
   keygenerate();
-  towerAngles.splice(
-    0,
-    towerAngles.length,
-    ...tilecoords.map(() => Math.random() * 2 * Math.PI)
-  );
+  gettower();
   drawTower();
   startGame();
 }
@@ -593,11 +625,15 @@ function startGame() {
   drawPlayer();
   collisionofkeyandplayer();
   fireBullet();
-  systemhealth();
   checkShardUnlock();
   checkShardDelivery();
 
-  for (let i = 0; i < towerAngles.length; i++) towerAngles[i] += 0.01;
+  for (let t = 0; t < towers.length; t++){
+    if (!towers[t].destroyed) {
+    towers[t].angle += 0.01;
+  }
+
+  } 
   drawTower();
 
   requestAnimationFrame(startGame);
@@ -614,9 +650,22 @@ function GameOver() {
   });
 }
 
+function GameWin() {
+  alert("Game Over!");
+  isGameOver = true;
+  document.querySelector("#gameOver").style.display = "flex";
+  document.getElementById("gamemessage").textContent =
+    "congratulations!! system Heath : 100% ";
+  document.getElementById("newGame").addEventListener("click", () => {
+    document.querySelector("#gameOver").style.display = "none";
+    resetGame();
+  });
+}
+
 drawGrid();
 generateBlackBuildings();
 keygenerate();
-const towerAngles = tilecoords.map(() => Math.random() * 2 * Math.PI);
+gettower();
 drawTower();
 startGame();
+systemhealth();
