@@ -3,15 +3,19 @@ const ctx = canvas.getContext("2d");
 const sounds = {
   key: new Audio("sounds/key.mp3"),
   shoot: new Audio("sounds/shoot.mp3"),
+  speed:new Audio("sounds/speedbooast.mp3"),
+  spawn:new Audio("sounds/spawn.mp3"),
 };
 
-canvas.height = 2000;
-canvas.width = 2000;
+canvas.height = 2155;
+canvas.width = 2155;
 
 const tileSize = 270;
 const padding = 27;
 const keyradius = 7;
 const threshold = 30;
+const powerUpRadius = 12;
+const iconSize = 32;
 
 let keysCollected = 0;
 let keysRequired = 3;
@@ -22,6 +26,9 @@ let playerHasShard = false;
 let sysheal = 50;
 let systemInterval = null;
 let playheal = 100;
+let isinvisible = false;
+let speedincrease = false;
+let powerUpTimers = {};
 
 let isPaused = false;
 let isGameOver = false;
@@ -33,6 +40,19 @@ const keys = [];
 const bullets = [];
 const floatingTexts = [];
 const towers = [];
+const healthPowerUps = [];
+const invisibilityPowerUps = [];
+const speedPowerUps = [];
+
+
+const iconImages = {
+  health: new Image(),
+  invisibility: new Image(),
+  speed: new Image(),
+};
+iconImages.health.src = "images/health.png";
+iconImages.invisibility.src = "images/shield.png";
+iconImages.speed.src = "images/speed.png";
 
 let player = {
   x: canvas.width / 2,
@@ -61,7 +81,7 @@ function drawGrid() {
       } else if (x === tileSize * chx && y == tileSize * chy) {
         ctx.fillStyle = "#FF00FF";
       } else {
-        ctx.fillStyle = "	#39FF14";
+        ctx.fillStyle = "green";
       }
       ctx.lineWidth = 2;
       ctx.strokeStyle = "#145214";
@@ -328,7 +348,6 @@ function fireBullet() {
       const distance = getDistance(b.x, b.y, tower.x, tower.y);
 
       if (distance < 15) {
-      
         tower.destroyed = true;
         bullets.splice(i, 1);
         i--;
@@ -536,7 +555,7 @@ function drawTower() {
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    if (isPlayerInRedZone(tower.x, tower.y, tower.angle)) {
+    if (isPlayerInRedZone(tower.x, tower.y, tower.angle) && !isinvisible) {
       playheal -= 0.05;
       if (playheal <= 0 && !isGameOver) {
         playheal = 0;
@@ -550,6 +569,111 @@ function drawTower() {
   });
 }
 
+function spawnHealthPowerUps(count = 3) {
+  for (let i = 0; i < count; i++) {
+    healthPowerUps.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      
+    });
+  }
+}
+
+function spawnInvisibilityPowerUps(count = 3) {
+  for (let i = 0; i < count; i++) {
+    invisibilityPowerUps.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+    
+    });
+  }
+}
+
+function spawnSpeedPowerUps(count = 4) {
+  for (let i = 0; i < count; i++) {
+    speedPowerUps.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+
+    });
+  }
+}
+
+function spawnAllPowerUps() {
+
+  spawnHealthPowerUps();
+  spawnInvisibilityPowerUps();
+  spawnSpeedPowerUps();
+}
+
+function drawHealthPowerUps() {
+  healthPowerUps.forEach(({ x, y }) => {
+    ctx.drawImage(iconImages.health, x - iconSize / 2, y - iconSize / 2, iconSize, iconSize);
+  });
+}
+
+function drawInvisibilityPowerUps() {
+  invisibilityPowerUps.forEach(({ x, y }) => {
+    ctx.drawImage(iconImages.invisibility, x - iconSize / 2, y - iconSize / 2, iconSize, iconSize);
+  });
+}
+
+function drawSpeedPowerUps() {
+  speedPowerUps.forEach(({ x, y }) => {
+    ctx.drawImage(iconImages.speed, x - iconSize / 2, y - iconSize / 2, iconSize, iconSize);
+  });
+}
+
+function drawAllPowerUps() {
+  drawHealthPowerUps();
+  drawInvisibilityPowerUps();
+  drawSpeedPowerUps();
+}
+
+function collisionWithHealthPowerUps() {
+  for (let i = healthPowerUps.length - 1; i >= 0; i--) {
+    const p = healthPowerUps[i];
+    if (getDistance(player.x, player.y, p.x, p.y) < player.radius + iconSize / 2) {
+      sounds.spawn.currentTime = 0;
+      sounds.spawn.play();
+      playheal = Math.min(playheal + 10, 100);
+      healthPowerUps.splice(i, 1);
+    }
+  }
+}
+
+function collisionWithInvisibilityPowerUps() {
+  for (let i = invisibilityPowerUps.length - 1; i >= 0; i--) {
+    const p = invisibilityPowerUps[i];
+    if (getDistance(player.x, player.y, p.x, p.y) < player.radius + iconSize / 2) {
+      sounds.spawn.currentTime = 0;
+      sounds.spawn.play();
+      isinvisible = true;
+      invisibilityPowerUps.splice(i, 1);
+      setTimeout(() => (isinvisible = false), 5000);
+    }
+  }
+}
+
+function collisionWithSpeedPowerUps() {
+  for (let i = speedPowerUps.length - 1; i >= 0; i--) {
+    const p = speedPowerUps[i];
+    if (getDistance(player.x, player.y, p.x, p.y) < player.radius + iconSize / 2) {
+      player.speed += 3;
+      sounds.speed.currentTime = 0;
+      sounds.speed.play();
+      speedPowerUps.splice(i, 1);
+      setTimeout(() => (player.speed -= 3), 5000);
+    }
+  }
+}
+
+function collisionWithAllPowerUps() {
+  collisionWithHealthPowerUps();
+  collisionWithInvisibilityPowerUps();
+  collisionWithSpeedPowerUps();
+  document.getElementById("playerHealth").textContent = Math.floor(playheal);
+}
 
 function resetGame() {
   tilecoords.length = 0;
@@ -557,7 +681,12 @@ function resetGame() {
   buildings.length = 0;
   keys.length = 0;
   bullets.length = 0;
-  towers.length=0;
+  towers.length = 0;
+
+   healthPowerUps.length = 0;
+ invisibilityPowerUps.length =0;
+ speedPowerUps.length = 0;
+
 
   keysCollected = 0;
   shardUnlocked = false;
@@ -591,6 +720,7 @@ function resetGame() {
   drawGrid();
   generateBlackBuildings();
   keygenerate();
+  spawnAllPowerUps();
   gettower();
   drawTower();
   startGame();
@@ -623,17 +753,18 @@ function startGame() {
   keydraw();
   drawFloatingTexts();
   drawPlayer();
+  drawAllPowerUps();
+  collisionWithAllPowerUps();
   collisionofkeyandplayer();
   fireBullet();
   checkShardUnlock();
   checkShardDelivery();
 
-  for (let t = 0; t < towers.length; t++){
+  for (let t = 0; t < towers.length; t++) {
     if (!towers[t].destroyed) {
-    towers[t].angle += 0.01;
+      towers[t].angle += 0.01;
+    }
   }
-
-  } 
   drawTower();
 
   requestAnimationFrame(startGame);
@@ -667,5 +798,6 @@ generateBlackBuildings();
 keygenerate();
 gettower();
 drawTower();
+spawnAllPowerUps();
 startGame();
 systemhealth();
