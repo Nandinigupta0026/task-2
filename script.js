@@ -3,8 +3,8 @@ const ctx = canvas.getContext("2d");
 const sounds = {
   key: new Audio("sounds/key.mp3"),
   shoot: new Audio("sounds/shoot.mp3"),
-  speed:new Audio("sounds/speedbooast.mp3"),
-  spawn:new Audio("sounds/spawn.mp3"),
+  speed: new Audio("sounds/speedbooast.mp3"),
+  spawn: new Audio("sounds/spawn.mp3"),
 };
 
 canvas.height = 2155;
@@ -44,7 +44,6 @@ const healthPowerUps = [];
 const invisibilityPowerUps = [];
 const speedPowerUps = [];
 
-
 const iconImages = {
   health: new Image(),
   invisibility: new Image(),
@@ -54,6 +53,12 @@ iconImages.health.src = "images/health.png";
 iconImages.invisibility.src = "images/shield.png";
 iconImages.speed.src = "images/speed.png";
 
+const locationIcons = {
+  hub: new Image(),
+  base: new Image(),
+};
+locationIcons.hub.src = "images/central_hub.png";
+locationIcons.base.src ="images/base_station.png";
 let player = {
   x: canvas.width / 2,
   y: canvas.height / 2,
@@ -101,6 +106,12 @@ function drawGrid() {
 
 function generateBlackBuildings() {
   greencoords.forEach(({ x, y, size }) => {
+    if (
+      (x === tileSize * bsx + padding && y === tileSize * bsy + padding) ||
+      (x === tileSize * chx + padding && y === tileSize * chy + padding)
+    )
+      return;
+
     for (let i = 0; i < 5; i++) {
       const squareSize = 85;
       const randX = x + Math.random() * (size - squareSize);
@@ -133,29 +144,47 @@ function drawShards() {
   );
 
   if (hubTile) {
-    ctx.fillStyle = "	#BF00FF";
-    ctx.beginPath();
-    ctx.arc(
-      hubTile.x + hubTile.size / 2,
-      hubTile.y + hubTile.size / 2,
-      20,
-      0,
-      Math.PI * 2
+    const cx = hubTile.x + hubTile.size / 2;
+    const cy = hubTile.y + hubTile.size / 2;
+    const imageSize = tileSize - 2 * padding;
+    ctx.save();
+    ctx.shadowColor = "#D000FF";
+    ctx.shadowBlur = 25;
+    ctx.drawImage(
+      locationIcons.hub,
+      cx - imageSize / 2,
+      cy - imageSize / 2,
+      imageSize,
+      imageSize
     );
-    ctx.fill();
+    ctx.restore();
+
+    ctx.font = "27px Orbitron, sans-serif";
+    ctx.fillStyle = "#FFFFFF";
+    ctx.textAlign = "center";
+    ctx.fillText("HUB", cx, cy + 70);
   }
   if (stationTile) {
-    ctx.fillStyle = "blue";
-
-    ctx.beginPath();
-    ctx.arc(
-      stationTile.x + stationTile.size / 2,
-      stationTile.y + stationTile.size / 2,
-      20,
-      0,
-      Math.PI * 2
+    const cx = stationTile.x + stationTile.size / 2;
+    const cy = stationTile.y + stationTile.size / 2;
+    const imageSize = tileSize - 2 * padding;
+    ctx.save();
+    ctx.shadowColor = "#D000FF";
+    ctx.shadowBlur = 25;
+    ctx.drawImage(
+      locationIcons.base,
+      cx - imageSize / 2,
+      cy - imageSize / 2,
+      imageSize,
+      imageSize
     );
-    ctx.fill();
+    ctx.restore();
+
+    ctx.font = "27px Orbitron, sans-serif";
+    ctx.fillStyle = "white";
+    ctx.textAlign = "left";
+    ctx.fillText("Base", cx+45, cy - 70);
+
   }
 }
 
@@ -448,7 +477,7 @@ function checkShardUnlock() {
     shardUnlocked = true;
     playerHasShard = true;
     keysCollected -= keysRequired;
-    player.color = "	#9400D3";
+    player.color = "cyan";
     document.querySelector("#keys").textContent = keysCollected;
     console.log("shradunlocked");
   }
@@ -574,7 +603,6 @@ function spawnHealthPowerUps(count = 3) {
     healthPowerUps.push({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-      
     });
   }
 }
@@ -584,7 +612,6 @@ function spawnInvisibilityPowerUps(count = 3) {
     invisibilityPowerUps.push({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-    
     });
   }
 }
@@ -594,13 +621,11 @@ function spawnSpeedPowerUps(count = 4) {
     speedPowerUps.push({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-
     });
   }
 }
 
 function spawnAllPowerUps() {
-
   spawnHealthPowerUps();
   spawnInvisibilityPowerUps();
   spawnSpeedPowerUps();
@@ -608,19 +633,37 @@ function spawnAllPowerUps() {
 
 function drawHealthPowerUps() {
   healthPowerUps.forEach(({ x, y }) => {
-    ctx.drawImage(iconImages.health, x - iconSize / 2, y - iconSize / 2, iconSize, iconSize);
+    ctx.drawImage(
+      iconImages.health,
+      x - iconSize / 2,
+      y - iconSize / 2,
+      iconSize,
+      iconSize
+    );
   });
 }
 
 function drawInvisibilityPowerUps() {
   invisibilityPowerUps.forEach(({ x, y }) => {
-    ctx.drawImage(iconImages.invisibility, x - iconSize / 2, y - iconSize / 2, iconSize, iconSize);
+    ctx.drawImage(
+      iconImages.invisibility,
+      x - iconSize / 2,
+      y - iconSize / 2,
+      iconSize,
+      iconSize
+    );
   });
 }
 
 function drawSpeedPowerUps() {
   speedPowerUps.forEach(({ x, y }) => {
-    ctx.drawImage(iconImages.speed, x - iconSize / 2, y - iconSize / 2, iconSize, iconSize);
+    ctx.drawImage(
+      iconImages.speed,
+      x - iconSize / 2,
+      y - iconSize / 2,
+      iconSize,
+      iconSize
+    );
   });
 }
 
@@ -633,7 +676,10 @@ function drawAllPowerUps() {
 function collisionWithHealthPowerUps() {
   for (let i = healthPowerUps.length - 1; i >= 0; i--) {
     const p = healthPowerUps[i];
-    if (getDistance(player.x, player.y, p.x, p.y) < player.radius + iconSize / 2) {
+    if (
+      getDistance(player.x, player.y, p.x, p.y) <
+      player.radius + iconSize / 2
+    ) {
       sounds.spawn.currentTime = 0;
       sounds.spawn.play();
       playheal = Math.min(playheal + 10, 100);
@@ -645,7 +691,10 @@ function collisionWithHealthPowerUps() {
 function collisionWithInvisibilityPowerUps() {
   for (let i = invisibilityPowerUps.length - 1; i >= 0; i--) {
     const p = invisibilityPowerUps[i];
-    if (getDistance(player.x, player.y, p.x, p.y) < player.radius + iconSize / 2) {
+    if (
+      getDistance(player.x, player.y, p.x, p.y) <
+      player.radius + iconSize / 2
+    ) {
       sounds.spawn.currentTime = 0;
       sounds.spawn.play();
       isinvisible = true;
@@ -658,7 +707,10 @@ function collisionWithInvisibilityPowerUps() {
 function collisionWithSpeedPowerUps() {
   for (let i = speedPowerUps.length - 1; i >= 0; i--) {
     const p = speedPowerUps[i];
-    if (getDistance(player.x, player.y, p.x, p.y) < player.radius + iconSize / 2) {
+    if (
+      getDistance(player.x, player.y, p.x, p.y) <
+      player.radius + iconSize / 2
+    ) {
       player.speed += 3;
       sounds.speed.currentTime = 0;
       sounds.speed.play();
@@ -683,10 +735,9 @@ function resetGame() {
   bullets.length = 0;
   towers.length = 0;
 
-   healthPowerUps.length = 0;
- invisibilityPowerUps.length =0;
- speedPowerUps.length = 0;
-
+  healthPowerUps.length = 0;
+  invisibilityPowerUps.length = 0;
+  speedPowerUps.length = 0;
 
   keysCollected = 0;
   shardUnlocked = false;
