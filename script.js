@@ -7,8 +7,8 @@ const sounds = {
   spawn: new Audio("sounds/spawn.mp3"),
 };
 
-canvas.height = 2155;
-canvas.width = 2155;
+canvas.height = 2700;
+canvas.width = 2700;
 
 const tileSize = 270;
 const padding = 27;
@@ -585,7 +585,7 @@ function drawTower() {
     ctx.stroke();
 
     if (isPlayerInRedZone(tower.x, tower.y, tower.angle) && !isinvisible) {
-      playheal -= 0.05;
+      playheal -= 0.1;
       if (playheal <= 0 && !isGameOver) {
         playheal = 0;
         GameOver();
