@@ -58,7 +58,7 @@ const locationIcons = {
   base: new Image(),
 };
 locationIcons.hub.src = "images/central_hub.png";
-locationIcons.base.src ="images/base_station.png";
+locationIcons.base.src = "images/base_station.png";
 let player = {
   x: canvas.width / 2,
   y: canvas.height / 2,
@@ -66,14 +66,40 @@ let player = {
   speed: 7,
   color: "white",
 };
-
-let bsx = Math.floor(Math.random() * (canvas.width / tileSize));
-let bsy = Math.floor(Math.random() * (canvas.height / tileSize));
-
-let chx = Math.floor(Math.random() * (canvas.width / tileSize));
-let chy = Math.floor(Math.random() * (canvas.height / tileSize));
-
 let keysPressed = {};
+
+function getshardcoord() {
+  const cols = Math.floor(canvas.width / tileSize);
+  const rows = Math.floor(canvas.height / tileSize);
+
+
+  const bsx = Math.floor(Math.random() * cols);
+  const bsy = Math.floor(Math.random() * rows);
+
+  let maxDist = -1;
+  let chx = bsx;
+  let chy = bsy;
+
+  
+  for (let x = 0; x < cols; x++) {
+    for (let y = 0; y < rows; y++) {
+      const dist = Math.abs(bsx - x) + Math.abs(bsy - y);
+      if (dist > maxDist) {
+        maxDist = dist;
+        chx = x;
+        chy = y;
+      }
+    }
+  }
+
+  return { bsx, bsy, chx, chy };
+}
+
+const coords = getshardcoord();
+let bsx = coords.bsx;
+let bsy = coords.bsy;
+let chx = coords.chx;
+let chy = coords.chy;
 
 function drawGrid() {
   for (let x = 0; x < canvas.width; x += tileSize) {
@@ -183,8 +209,7 @@ function drawShards() {
     ctx.font = "27px Orbitron, sans-serif";
     ctx.fillStyle = "white";
     ctx.textAlign = "left";
-    ctx.fillText("Base", cx+45, cy - 70);
-
+    ctx.fillText("Base", cx + 45, cy - 70);
   }
 }
 
@@ -273,12 +298,22 @@ function movePlayer() {
 }
 
 function drawPlayer() {
+  ctx.save();
+
+  if (isinvisible) {
+    ctx.shadowColor = "#A9A9A9"; 
+    ctx.shadowBlur = 30;
+    ctx.globalAlpha = 1;
+  }
+
   ctx.beginPath();
   ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
   ctx.strokeStyle = player.color;
   ctx.fillStyle = player.color;
   ctx.stroke();
   ctx.fill();
+
+    ctx.restore();
 }
 
 function centerViewOnPlayer() {
@@ -496,7 +531,7 @@ function checkShardDelivery() {
     playerHasShard = false;
     shardUnlocked = false;
     player.color = "white";
-    sysheal += 30;
+    sysheal += 20;
     noofshard++;
     document.querySelector("#systemHealth").textContent = sysheal;
     document.querySelector("#shardDelivered").textContent = noofshard;
@@ -699,7 +734,7 @@ function collisionWithInvisibilityPowerUps() {
       sounds.spawn.play();
       isinvisible = true;
       invisibilityPowerUps.splice(i, 1);
-      setTimeout(() => (isinvisible = false), 5000);
+      setTimeout(() => (isinvisible = false), 10000);
     }
   }
 }
@@ -749,9 +784,17 @@ function resetGame() {
   isPaused = false;
   isGameOver = false;
 
+   keysPressed={};
+
   player.x = canvas.width / 2;
   player.y = canvas.height / 2;
   player.color = "white";
+
+  const coords = getshardcoord();
+   bsx = coords.bsx;
+   bsy = coords.bsy;
+   chx = coords.chx;
+   chy = coords.chy;
 
   document.querySelector("#keys").textContent = keysCollected;
   document.querySelector("#systemHealth").textContent = sysheal;
@@ -762,11 +805,6 @@ function resetGame() {
     clearInterval(systemInterval);
     systemInterval = null;
   }
-
-  bsx = Math.floor(Math.random() * (canvas.width / tileSize));
-  bsy = Math.floor(Math.random() * (canvas.height / tileSize));
-  chx = Math.floor(Math.random() * (canvas.width / tileSize));
-  chy = Math.floor(Math.random() * (canvas.height / tileSize));
 
   drawGrid();
   generateBlackBuildings();
